@@ -1,73 +1,174 @@
-using System.Collections.Generic;
-using Unity.AppUI.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(TrailRenderer))]
 public class SnakeMovement : MonoBehaviour
 {
+    public TrailRenderer trailRenderer;
+    public float speed = 2f;
+    public float turnSpeed = 2f;
+    public float randomTurnStrength = 0.8f;
+    public float randomEdgePadding = 0.75f;
+    public float edgeAvoidStrength = 3f;
+    public float lineWidth = 0.25f;
+    public float tailAlpha = 0.6f;
+    public float snakeLength = 3.5f;
 
-    public Transform head;
-    public List<Transform> bodyParts;
+    private bool useRandomTrajectory;
+    private Vector2 direction;
+    private float noiseSeed;
 
-    public float speed = 5f;
+    void Awake() {
+        ResetRandomDirection();
+        ApplyTrailSettings();
+    }
 
-    private List<Vector3> positionHistory = new List<Vector3>(); // head가 지나간 위치들을 저장하는 리스트
-    public int frameGap = 3;    // 프레임 업데이트 간격
-    public int capacity = 60;   // positionHistory 메모리 크기
+    void OnValidate() {
+        ApplyTrailSettings();
+    }
 
-
-    void Start()
-    {
-        for (int i = 0; i < transform.childCount; i++) {
-            Transform child = transform.GetChild(i);
-
-            if (child != head) { bodyParts.Add(child); }
+    void OnEnable() {
+        ApplyTrailSettings();
+        if (trailRenderer != null) {
+            trailRenderer.Clear();
+            trailRenderer.emitting = useRandomTrajectory;
         }
     }
 
-    void FixedUpdate() {
-        MoveHead();
-        SaveHeadPosition();
-        MoveBody();
+    void OnDisable() {
+        if (trailRenderer != null) { trailRenderer.emitting = false; }
     }
 
-    void MoveHead() {
+    void Update() {
+        if (useRandomTrajectory) { MoveHeadRandom(); }
+    }
 
-        // 카메라와 월드 평면 사이의 거리를 z값으로 넣어 평면 좌표로 변환
-        Vector2 mousePos2d = Mouse.current.position.ReadValue();
-        Vector3 mousePos3d = new Vector3(
-            mousePos2d.x,
-            mousePos2d.y,
-            -Camera.main.transform.position.z
-        ); 
+    public void SetRandomMode(bool enabled) {
+        useRandomTrajectory = enabled;
+        if (trailRenderer != null) {
+            trailRenderer.Clear();
+            trailRenderer.emitting = enabled && isActiveAndEnabled;
+        }
+    }
 
-        // 마우스 화면 좌표 → 월드 좌표로 변환
-        Vector3 targetPos = Camera.main.ScreenToWorldPoint(mousePos3d);
-        targetPos.z = 0f;
+    void MoveHeadRandom() {
+        if (direction == Vector2.zero) { ResetRandomDirection(); }
 
-        // 마우스 추적
-        head.position = Vector2.MoveTowards(
-            head.position, 
-            targetPos, 
-            speed * Time.deltaTime
+        Vector2 randomSteering = GetSmoothRandomDirection();
+        Vector2 edgeSteering = GetEdgeAvoidanceDirection();
+        Vector2 desiredDirection = direction
+            + randomSteering * randomTurnStrength
+            + edgeSteering * edgeAvoidStrength;
+
+        if (desiredDirection.sqrMagnitude < 0.01f) { desiredDirection = direction; }
+        desiredDirection.Normalize();
+
+        direction = Vector2.Lerp(direction, desiredDirection, turnSpeed * Time.deltaTime);
+        direction.Normalize();
+
+        Vector3 nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.deltaTime;
+        if (!IsInsideScreen(nextPosition)) {
+            direction = Vector2.Lerp(direction, GetScreenCenterDirection(), edgeAvoidStrength * Time.deltaTime);
+            direction.Normalize();
+            nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.deltaTime;
+        }
+
+        transform.position = ClampToScreen(nextPosition);
+    }
+
+    Vector2 GetSmoothRandomDirection() {
+        float t = Time.time * 0.5f;
+        float x = Mathf.PerlinNoise(noiseSeed, t) * 2f - 1f;
+        float y = Mathf.PerlinNoise(noiseSeed + 50f, t) * 2f - 1f;
+        Vector2 noiseDirection = new Vector2(x, y);
+
+        if (noiseDirection.sqrMagnitude < 0.01f) { return Vector2.zero; }
+        return noiseDirection.normalized;
+    }
+
+    Vector2 GetEdgeAvoidanceDirection() {
+        Camera mainCamera = Camera.main;
+        float zDistance = -mainCamera.transform.position.z;
+        Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
+        Vector3 max = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, zDistance));
+        Vector3 position = transform.position;
+        float avoidDistance = Mathf.Max(randomEdgePadding * 4f, speed);
+        float left = min.x + randomEdgePadding;
+        float right = max.x - randomEdgePadding;
+        float bottom = min.y + randomEdgePadding;
+        float top = max.y - randomEdgePadding;
+        Vector2 steering = Vector2.zero;
+
+        steering += Vector2.right * Mathf.Clamp01((left + avoidDistance - position.x) / avoidDistance);
+        steering += Vector2.left * Mathf.Clamp01((position.x - (right - avoidDistance)) / avoidDistance);
+        steering += Vector2.up * Mathf.Clamp01((bottom + avoidDistance - position.y) / avoidDistance);
+        steering += Vector2.down * Mathf.Clamp01((position.y - (top - avoidDistance)) / avoidDistance);
+
+        if (steering.sqrMagnitude > 1f) { steering.Normalize(); }
+        return steering;
+    }
+
+    Vector2 GetScreenCenterDirection() {
+        Camera mainCamera = Camera.main;
+        Vector3 center = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, -mainCamera.transform.position.z));
+        Vector2 centerDirection = center - transform.position;
+
+        if (centerDirection.sqrMagnitude < 0.01f) { return direction; }
+        return centerDirection.normalized;
+    }
+
+    bool IsInsideScreen(Vector3 position) {
+        Camera mainCamera = Camera.main;
+        float zDistance = -mainCamera.transform.position.z;
+        Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
+        Vector3 max = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, zDistance));
+
+        return position.x >= min.x + randomEdgePadding
+            && position.x <= max.x - randomEdgePadding
+            && position.y >= min.y + randomEdgePadding
+            && position.y <= max.y - randomEdgePadding;
+    }
+
+    Vector3 ClampToScreen(Vector3 position) {
+        Camera mainCamera = Camera.main;
+        float zDistance = -mainCamera.transform.position.z;
+        Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
+        Vector3 max = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, zDistance));
+
+        position.x = Mathf.Clamp(position.x, min.x + randomEdgePadding, max.x - randomEdgePadding);
+        position.y = Mathf.Clamp(position.y, min.y + randomEdgePadding, max.y - randomEdgePadding);
+        position.z = 0f;
+        return position;
+    }
+
+    void ApplyTrailSettings() {
+        if (trailRenderer == null) { trailRenderer = GetComponent<TrailRenderer>(); }
+        if (trailRenderer == null && Application.isPlaying) { trailRenderer = gameObject.AddComponent<TrailRenderer>(); }
+        if (trailRenderer == null) { return; }
+
+        trailRenderer.time = Mathf.Max(0.01f, snakeLength / Mathf.Max(speed, 0.01f));
+        trailRenderer.startWidth = lineWidth;
+        trailRenderer.endWidth = lineWidth;
+        trailRenderer.numCornerVertices = 8;
+        trailRenderer.numCapVertices = 8;
+        trailRenderer.colorGradient = GetSnakeGradient();
+    }
+
+    Gradient GetSnakeGradient() {
+        Gradient gradient = new Gradient();
+        gradient.SetKeys(
+            new GradientColorKey[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new GradientAlphaKey[] {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(1f, 0.7f),
+                new GradientAlphaKey(tailAlpha, 1f)
+            }
         );
-
+        return gradient;
     }
 
-
-    void SaveHeadPosition()
-    {
-        positionHistory.Insert(0, head.position); // head의 현재 위치를 가장 앞에 저장
-        if (positionHistory.Count > capacity) { positionHistory.RemoveAt(positionHistory.Count - 1); }
+    void ResetRandomDirection() {
+        direction = Random.insideUnitCircle.normalized;
+        if (direction == Vector2.zero) { direction = Vector2.right; }
+        noiseSeed = Random.Range(0f, 100f);
     }
-
-    void MoveBody()
-    {
-        for (int i = 0; i < bodyParts.Count; i++)
-        {
-            int historyIndex = (i + 1) * frameGap;
-            if (historyIndex < positionHistory.Count) { bodyParts[i].position = positionHistory[historyIndex]; }
-        }
-    }
-
 }
