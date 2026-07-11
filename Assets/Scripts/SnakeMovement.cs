@@ -12,10 +12,17 @@ public class SnakeMovement : MonoBehaviour
     public float lineWidth = 0.25f;
     public float tailAlpha = 0.6f;
     public float snakeLength = 3.5f;
+    public float fixedCircleRadius = 2f;
 
     private bool useRandomTrajectory;
+    private bool useFixedTrajectory;
     private Vector2 direction;
-    private float noiseSeed;
+    private float noiseSeedX;
+    private float noiseSeedY;
+    private float fixedAngle;
+    private Vector3 fixedCenter;
+    private float positionLogTimer;
+    private const float PositionLogInterval = 1f;
 
     void Awake() {
         ResetRandomDirection();
@@ -28,9 +35,12 @@ public class SnakeMovement : MonoBehaviour
 
     void OnEnable() {
         ApplyTrailSettings();
+        if (useRandomTrajectory) { ResetRandomDirection(); }
+        if (useFixedTrajectory) { ResetFixedCircle(); }
+
         if (trailRenderer != null) {
             trailRenderer.Clear();
-            trailRenderer.emitting = useRandomTrajectory;
+            trailRenderer.emitting = useRandomTrajectory || useFixedTrajectory;
         }
     }
 
@@ -40,14 +50,24 @@ public class SnakeMovement : MonoBehaviour
 
     void Update() {
         if (useRandomTrajectory) { MoveHeadRandom(); }
+        if (useFixedTrajectory) { MoveHeadFixed(); }
+        LogPosition();
+    }
+
+    public void SetMode(string mode) {
+        useFixedTrajectory = mode == "fixed";
+        useRandomTrajectory = mode == "random";
+        if (useFixedTrajectory) { ResetFixedCircle(); }
+        if (useRandomTrajectory) { ResetRandomDirection(); }
+
+        if (trailRenderer != null) {
+            trailRenderer.Clear();
+            trailRenderer.emitting = (useFixedTrajectory || useRandomTrajectory) && isActiveAndEnabled;
+        }
     }
 
     public void SetRandomMode(bool enabled) {
-        useRandomTrajectory = enabled;
-        if (trailRenderer != null) {
-            trailRenderer.Clear();
-            trailRenderer.emitting = enabled && isActiveAndEnabled;
-        }
+        SetMode(enabled ? "random" : "fixed");
     }
 
     void MoveHeadRandom() {
@@ -75,10 +95,17 @@ public class SnakeMovement : MonoBehaviour
         transform.position = ClampToScreen(nextPosition);
     }
 
+    void MoveHeadFixed() {
+        fixedCenter = GetScreenCenterPosition();
+        float radius = GetFixedCircleRadius();
+        fixedAngle += speed / radius * Time.deltaTime;
+        transform.position = fixedCenter + new Vector3(Mathf.Cos(fixedAngle), Mathf.Sin(fixedAngle), 0f) * radius;
+    }
+
     Vector2 GetSmoothRandomDirection() {
         float t = Time.time * 0.5f;
-        float x = Mathf.PerlinNoise(noiseSeed, t) * 2f - 1f;
-        float y = Mathf.PerlinNoise(noiseSeed + 50f, t) * 2f - 1f;
+        float x = Mathf.PerlinNoise(noiseSeedX, t) * 2f - 1f;
+        float y = Mathf.PerlinNoise(noiseSeedY, t) * 2f - 1f;
         Vector2 noiseDirection = new Vector2(x, y);
 
         if (noiseDirection.sqrMagnitude < 0.01f) { return Vector2.zero; }
@@ -108,12 +135,31 @@ public class SnakeMovement : MonoBehaviour
     }
 
     Vector2 GetScreenCenterDirection() {
-        Camera mainCamera = Camera.main;
-        Vector3 center = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, -mainCamera.transform.position.z));
-        Vector2 centerDirection = center - transform.position;
+        Vector2 centerDirection = GetScreenCenterPosition() - transform.position;
 
         if (centerDirection.sqrMagnitude < 0.01f) { return direction; }
         return centerDirection.normalized;
+    }
+
+    Vector3 GetScreenCenterPosition() {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null) { return Vector3.zero; }
+
+        Vector3 center = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, -mainCamera.transform.position.z));
+        center.z = 0f;
+        return center;
+    }
+
+    float GetFixedCircleRadius() {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null) { return Mathf.Max(0.01f, fixedCircleRadius); }
+
+        float zDistance = -mainCamera.transform.position.z;
+        Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
+        Vector3 max = mainCamera.ViewportToWorldPoint(new Vector3(1f, 1f, zDistance));
+        float maxRadius = Mathf.Min(max.x - min.x, max.y - min.y) * 0.5f - randomEdgePadding;
+
+        return Mathf.Max(0.01f, Mathf.Min(fixedCircleRadius, maxRadius));
     }
 
     bool IsInsideScreen(Vector3 position) {
@@ -138,6 +184,16 @@ public class SnakeMovement : MonoBehaviour
         position.y = Mathf.Clamp(position.y, min.y + randomEdgePadding, max.y - randomEdgePadding);
         position.z = 0f;
         return position;
+    }
+
+    void LogPosition() {
+        if (!useRandomTrajectory && !useFixedTrajectory) { return; }
+
+        positionLogTimer -= Time.deltaTime;
+        if (positionLogTimer > 0f) { return; }
+
+        Debug.Log($"x: {transform.position.x:F3}, y: {transform.position.y:F3}");
+        positionLogTimer = PositionLogInterval;
     }
 
     void ApplyTrailSettings() {
@@ -169,6 +225,13 @@ public class SnakeMovement : MonoBehaviour
     void ResetRandomDirection() {
         direction = Random.insideUnitCircle.normalized;
         if (direction == Vector2.zero) { direction = Vector2.right; }
-        noiseSeed = Random.Range(0f, 100f);
+        noiseSeedX = Random.Range(0f, 100f);
+        noiseSeedY = Random.Range(100f, 200f);
+    }
+
+    void ResetFixedCircle() {
+        fixedCenter = GetScreenCenterPosition();
+        fixedAngle = 0f;
+        transform.position = fixedCenter + Vector3.right * GetFixedCircleRadius();
     }
 }

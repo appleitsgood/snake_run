@@ -5,10 +5,11 @@ using UnityEngine.UI;
 public class SnakeTestManager : MonoBehaviour
 {
     public SnakeMovement snakeMovement;
+    public CursorMovement cursorMovement;
     public string selectedMode;
 
     public GameObject modePanel;
-    public Button controlButton;
+    public Button fixedButton;
     public Button randomButton;
     public Text countdownText;
 
@@ -26,9 +27,11 @@ public class SnakeTestManager : MonoBehaviour
             snakeMovement.enabled = false;
         }
 
+        if (cursorMovement != null) { cursorMovement.gameObject.SetActive(false); }
+
         modePanel.SetActive(true);
         countdownText.gameObject.SetActive(false);
-        controlButton.onClick.AddListener(() => StartTest("control"));
+        fixedButton.onClick.AddListener(() => StartTest("fixed"));
         randomButton.onClick.AddListener(() => StartTest("random"));
     }
 
@@ -38,7 +41,7 @@ public class SnakeTestManager : MonoBehaviour
 
         if (snakeMovement != null)
         {
-            snakeMovement.SetRandomMode(mode == "random");
+            snakeMovement.SetMode(mode);
         }
 
         modePanel.SetActive(false);
@@ -58,5 +61,6 @@ public class SnakeTestManager : MonoBehaviour
         countdownText.gameObject.SetActive(false);
 
         if (snakeMovement != null) { snakeMovement.enabled = true; }
+        if (cursorMovement != null) { cursorMovement.gameObject.SetActive(true); }
     }
 }
