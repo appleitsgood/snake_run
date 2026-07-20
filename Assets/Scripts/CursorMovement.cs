@@ -13,6 +13,11 @@ public class CursorMovement : MonoBehaviour
     public float tailAlpha = 0.5f;
     public float tailFadeStart = 0.5f;
     public float trailLength = 3.5f;
+    public bool useCustomBounds;
+    public Vector2 customBoundsMin;
+    public Vector2 customBoundsMax;
+
+    private Color feedbackColor = Color.green;
 
     void OnValidate() {
         ApplyCursorSettings();
@@ -51,7 +56,47 @@ public class CursorMovement : MonoBehaviour
         return input;
     }
 
+    public void RefreshSettings() {
+        ApplyCursorSettings();
+    }
+
+    public void ResetForRun() {
+        transform.position = GetScreenCenterPosition();
+        if (trailRenderer != null) { trailRenderer.Clear(); }
+    }
+
+    public void SetFeedbackColor(Color color) {
+        feedbackColor = color;
+        ApplyCursorSettings();
+    }
+
+    public void SetTrailVisible(bool visible) {
+        if (trailRenderer == null) { trailRenderer = GetComponent<TrailRenderer>(); }
+        if (trailRenderer == null) { return; }
+
+        trailRenderer.emitting = visible;
+        if (!visible) { trailRenderer.Clear(); }
+    }
+
+    public void SetCustomBounds(Vector2 min, Vector2 max) {
+        useCustomBounds = true;
+        customBoundsMin = min;
+        customBoundsMax = max;
+        transform.position = GetScreenCenterPosition();
+    }
+
+    public void ClearCustomBounds() {
+        useCustomBounds = false;
+    }
+
     Vector3 ClampToScreen(Vector3 position) {
+        if (useCustomBounds) {
+            position.x = Mathf.Clamp(position.x, customBoundsMin.x + screenPadding, customBoundsMax.x - screenPadding);
+            position.y = Mathf.Clamp(position.y, customBoundsMin.y + screenPadding, customBoundsMax.y - screenPadding);
+            position.z = 0f;
+            return position;
+        }
+
         Camera mainCamera = Camera.main;
         if (mainCamera == null) { return position; }
 
@@ -65,11 +110,25 @@ public class CursorMovement : MonoBehaviour
         return position;
     }
 
+    Vector3 GetScreenCenterPosition() {
+        if (useCustomBounds) {
+            Vector2 boundsCenter = (customBoundsMin + customBoundsMax) * 0.5f;
+            return new Vector3(boundsCenter.x, boundsCenter.y, 0f);
+        }
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null) { return Vector3.zero; }
+
+        Vector3 center = mainCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, -mainCamera.transform.position.z));
+        center.z = 0f;
+        return center;
+    }
+
     void ApplyCursorSettings() {
         if (trailRenderer == null) { trailRenderer = GetComponent<TrailRenderer>(); }
 
         if (headRenderer != null) {
-            headRenderer.color = Color.green;
+            headRenderer.color = feedbackColor;
             headRenderer.transform.localScale = Vector3.one * headSize;
         }
 
@@ -86,7 +145,7 @@ public class CursorMovement : MonoBehaviour
     Gradient GetCursorGradient() {
         Gradient gradient = new Gradient();
         gradient.SetKeys(
-            new GradientColorKey[] { new GradientColorKey(Color.green, 0f), new GradientColorKey(Color.green, 1f) },
+            new GradientColorKey[] { new GradientColorKey(feedbackColor, 0f), new GradientColorKey(feedbackColor, 1f) },
             new GradientAlphaKey[] {
                 new GradientAlphaKey(1f, 0f),
                 new GradientAlphaKey(1f, Mathf.Clamp01(tailFadeStart)),

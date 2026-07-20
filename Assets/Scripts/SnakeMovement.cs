@@ -13,6 +13,9 @@ public class SnakeMovement : MonoBehaviour
     public float tailAlpha = 0.6f;
     public float snakeLength = 3.5f;
     public float fixedCircleRadius = 2f;
+    public bool useCustomBounds;
+    public Vector2 customBoundsMin;
+    public Vector2 customBoundsMax;
 
     private bool useRandomTrajectory;
     private bool useFixedTrajectory;
@@ -68,6 +71,26 @@ public class SnakeMovement : MonoBehaviour
 
     public void SetRandomMode(bool enabled) {
         SetMode(enabled ? "random" : "fixed");
+    }
+
+    public void RefreshSettings() {
+        ApplyTrailSettings();
+    }
+
+    public void ResetForRun(string mode) {
+        SetMode(mode);
+        if (useRandomTrajectory) { transform.position = GetScreenCenterPosition(); }
+    }
+
+    public void SetCustomBounds(Vector2 min, Vector2 max) {
+        useCustomBounds = true;
+        customBoundsMin = min;
+        customBoundsMax = max;
+        transform.position = GetScreenCenterPosition();
+    }
+
+    public void ClearCustomBounds() {
+        useCustomBounds = false;
     }
 
     void MoveHeadRandom() {
@@ -142,6 +165,11 @@ public class SnakeMovement : MonoBehaviour
     }
 
     Vector3 GetScreenCenterPosition() {
+        if (useCustomBounds) {
+            Vector2 boundsCenter = (customBoundsMin + customBoundsMax) * 0.5f;
+            return new Vector3(boundsCenter.x, boundsCenter.y, 0f);
+        }
+
         Camera mainCamera = Camera.main;
         if (mainCamera == null) { return Vector3.zero; }
 
@@ -151,6 +179,11 @@ public class SnakeMovement : MonoBehaviour
     }
 
     float GetFixedCircleRadius() {
+        if (useCustomBounds) {
+            float boundsMaxRadius = Mathf.Min(customBoundsMax.x - customBoundsMin.x, customBoundsMax.y - customBoundsMin.y) * 0.5f - randomEdgePadding;
+            return Mathf.Max(0.01f, Mathf.Min(fixedCircleRadius, boundsMaxRadius));
+        }
+
         Camera mainCamera = Camera.main;
         if (mainCamera == null) { return Mathf.Max(0.01f, fixedCircleRadius); }
 
@@ -163,6 +196,13 @@ public class SnakeMovement : MonoBehaviour
     }
 
     bool IsInsideScreen(Vector3 position) {
+        if (useCustomBounds) {
+            return position.x >= customBoundsMin.x + randomEdgePadding
+                && position.x <= customBoundsMax.x - randomEdgePadding
+                && position.y >= customBoundsMin.y + randomEdgePadding
+                && position.y <= customBoundsMax.y - randomEdgePadding;
+        }
+
         Camera mainCamera = Camera.main;
         float zDistance = -mainCamera.transform.position.z;
         Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
@@ -175,6 +215,13 @@ public class SnakeMovement : MonoBehaviour
     }
 
     Vector3 ClampToScreen(Vector3 position) {
+        if (useCustomBounds) {
+            position.x = Mathf.Clamp(position.x, customBoundsMin.x + randomEdgePadding, customBoundsMax.x - randomEdgePadding);
+            position.y = Mathf.Clamp(position.y, customBoundsMin.y + randomEdgePadding, customBoundsMax.y - randomEdgePadding);
+            position.z = 0f;
+            return position;
+        }
+
         Camera mainCamera = Camera.main;
         float zDistance = -mainCamera.transform.position.z;
         Vector3 min = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0f, zDistance));
