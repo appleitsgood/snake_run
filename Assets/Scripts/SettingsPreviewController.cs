@@ -46,7 +46,7 @@ public class SettingsPreviewController : MonoBehaviour
         SetPreviewActive(true, false);
 
         if (snakePreview != null) {
-            snakePreview.ResetForRun("random");
+            snakePreview.ResetForTrial("random");
             snakePreview.enabled = true;
         }
     }
@@ -57,7 +57,7 @@ public class SettingsPreviewController : MonoBehaviour
         SetPreviewActive(false, true);
 
         if (cursorPreview != null) {
-            cursorPreview.ResetForRun();
+            cursorPreview.ResetForTrial();
             cursorPreview.SetFeedbackColor(Color.green);
             cursorPreview.SetTrailVisible(true);
             cursorPreview.enabled = true;

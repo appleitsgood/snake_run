@@ -74,7 +74,7 @@ public class SnakeMovement : MonoBehaviour
         ApplyTrailSettings();
     }
 
-    public void ResetForRun(string mode) {
+    public void ResetForTrial(string mode) {
         SetMode(mode);
         if (useRandomTrajectory) { transform.position = GetScreenCenterPosition(); }
     }

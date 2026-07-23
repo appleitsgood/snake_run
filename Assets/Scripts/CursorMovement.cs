@@ -63,7 +63,7 @@ public class CursorMovement : MonoBehaviour
         ApplyCursorSettings();
     }
 
-    public void ResetForRun() {
+    public void ResetForTrial() {
         transform.position = GetScreenCenterPosition();
         if (trailRenderer != null) { trailRenderer.Clear(); }
     }

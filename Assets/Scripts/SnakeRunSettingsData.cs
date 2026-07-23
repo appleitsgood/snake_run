@@ -6,8 +6,8 @@ using UnityEngine;
 [Serializable]
 public class SnakeRunSettingsData
 {
-    public int runCount = 1;
-    public float runDuration = 10f;
+    public int trialCount = 1;
+    public float trialDuration = 10f;
     public float breakDuration = 4f;
     public float countdownDuration = 3f;
 
@@ -124,8 +124,8 @@ public class SnakeRunSettingsData
 
     public string GetValue(string key) {
         switch (key) {
-            case "runCount": return runCount.ToString(CultureInfo.InvariantCulture);
-            case "runDuration": return FormatFloat(runDuration);
+            case "trialCount": return trialCount.ToString(CultureInfo.InvariantCulture);
+            case "trialDuration": return FormatFloat(trialDuration);
             case "breakDuration": return FormatFloat(breakDuration);
             case "countdownDuration": return FormatFloat(countdownDuration);
             case "snakeSpeed": return FormatFloat(snakeSpeed);
@@ -149,9 +149,9 @@ public class SnakeRunSettingsData
     }
 
     public void SetValue(string key, string value) {
-        if (key == "runCount") {
+        if (key == "trialCount") {
             if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedInt)) {
-                runCount = parsedInt;
+                trialCount = parsedInt;
             }
             return;
         }
@@ -159,7 +159,7 @@ public class SnakeRunSettingsData
         if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedFloat)) { return; }
 
         switch (key) {
-            case "runDuration": runDuration = parsedFloat; break;
+            case "trialDuration": trialDuration = parsedFloat; break;
             case "breakDuration": breakDuration = parsedFloat; break;
             case "countdownDuration": countdownDuration = parsedFloat; break;
             case "snakeSpeed": snakeSpeed = parsedFloat; break;
@@ -182,8 +182,8 @@ public class SnakeRunSettingsData
     }
 
     public void Sanitize() {
-        runCount = Mathf.Max(1, runCount);
-        runDuration = Mathf.Max(0.01f, runDuration);
+        trialCount = Mathf.Max(1, trialCount);
+        trialDuration = Mathf.Max(0.01f, trialDuration);
         breakDuration = Mathf.Max(0f, breakDuration);
         countdownDuration = Mathf.Max(0f, countdownDuration);
 

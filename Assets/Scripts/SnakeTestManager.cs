@@ -91,10 +91,10 @@ public class SnakeTestManager : MonoBehaviour
 
         modePanel.SetActive(false);
         if (csvLogger != null) { csvLogger.CreateLog(runId, snakeMovement, cursorMovement); }
-        testRoutine = StartCoroutine(RunTests());
+        testRoutine = StartCoroutine(RunTrials());
     }
 
-    IEnumerator RunTests()
+    IEnumerator RunTrials()
     {
         SnakeRunSettingsData activeSettings = settingsPanel != null && settingsPanel.CurrentSettings != null
             ? settingsPanel.CurrentSettings
@@ -102,21 +102,21 @@ public class SnakeTestManager : MonoBehaviour
                 ? settings
             : SnakeRunSettingsData.CreateDefault(snakeMovement, cursorMovement);
 
-        for (int runIndex = 0; runIndex < activeSettings.runCount; runIndex++) {
+        for (int trialIndex = 0; trialIndex < activeSettings.trialCount; trialIndex++) {
             PushTrialStartMarker();
             ShowCountdownCursor(activeSettings.countdownDuration);
             yield return new WaitForSeconds(activeSettings.countdownDuration);
 
             PushTrackingStartMarker();
-            StartRun();
+            StartTrial();
             if (csvLogger != null) { csvLogger.StartTracking(); }
-            yield return new WaitForSeconds(activeSettings.runDuration);
+            yield return new WaitForSeconds(activeSettings.trialDuration);
 
             if (csvLogger != null) { csvLogger.StopTracking(); }
             PushTrackingEndMarker();
-            HideRunObjects();
+            HideTrialObjects();
             PushTrialEndMarker();
-            if (runIndex < activeSettings.runCount - 1) { yield return new WaitForSeconds(activeSettings.breakDuration); }
+            if (trialIndex < activeSettings.trialCount - 1) { yield return new WaitForSeconds(activeSettings.breakDuration); }
         }
 
         testRoutine = null;
@@ -125,34 +125,34 @@ public class SnakeTestManager : MonoBehaviour
     }
 
     void ShowCountdownCursor(float countdownDuration) {
-        HideRunObjects();
+        HideTrialObjects();
         if (countdownDuration <= 0f) { return; }
         if (cursorMovement == null) { return; }
 
         cursorMovement.enabled = false;
         cursorMovement.gameObject.SetActive(true);
-        cursorMovement.ResetForRun();
+        cursorMovement.ResetForTrial();
         cursorMovement.SetFeedbackColor(Color.yellow);
         cursorMovement.SetTrailVisible(false);
     }
 
-    void StartRun() {
+    void StartTrial() {
         if (snakeMovement != null) {
             snakeMovement.gameObject.SetActive(true);
-            snakeMovement.ResetForRun(selectedMode);
+            snakeMovement.ResetForTrial(selectedMode);
             snakeMovement.enabled = true;
         }
 
         if (cursorMovement != null) {
             cursorMovement.gameObject.SetActive(true);
-            cursorMovement.ResetForRun();
+            cursorMovement.ResetForTrial();
             cursorMovement.SetFeedbackColor(Color.green);
             cursorMovement.enabled = true;
             cursorMovement.SetTrailVisible(true);
         }
     }
 
-    void HideRunObjects() {
+    void HideTrialObjects() {
         if (snakeMovement != null) {
             snakeMovement.enabled = false;
             snakeMovement.gameObject.SetActive(false);
@@ -229,7 +229,7 @@ public class SnakeTestManager : MonoBehaviour
 
         selectedMode = "";
         if (csvLogger != null) { csvLogger.SaveLog(); }
-        HideRunObjects();
+        HideTrialObjects();
         if (countdownText != null) { countdownText.gameObject.SetActive(false); }
         if (modePanel != null) { modePanel.SetActive(true); }
     }
