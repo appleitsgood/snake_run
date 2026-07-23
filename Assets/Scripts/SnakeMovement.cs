@@ -13,6 +13,7 @@ public class SnakeMovement : MonoBehaviour
     public float tailAlpha = 0.6f;
     public float snakeLength = 3.5f;
     public float fixedCircleRadius = 2f;
+    public int maxRecordedFrames = 600;
     public bool useCustomBounds;
     public Vector2 customBoundsMin;
     public Vector2 customBoundsMax;
@@ -24,13 +25,18 @@ public class SnakeMovement : MonoBehaviour
     private float noiseSeedY;
     private float fixedAngle;
     private Vector3 fixedCenter;
+    private Vector3[] pastPositions;
+    private int pastPositionIndex;
+    private int pastPositionCount;
 
     void Awake() {
         ResetRandomDirection();
+        EnsurePositionBuffer();
         ApplyTrailSettings();
     }
 
     void OnValidate() {
+        maxRecordedFrames = Mathf.Max(1, maxRecordedFrames);
         ApplyTrailSettings();
     }
 
@@ -52,6 +58,7 @@ public class SnakeMovement : MonoBehaviour
     void FixedUpdate() {
         if (useRandomTrajectory) { MoveHeadRandom(); }
         if (useFixedTrajectory) { MoveHeadFixed(); }
+        if (useRandomTrajectory || useFixedTrajectory) { RecordPosition(); }
     }
 
     public void SetMode(string mode) {
@@ -73,6 +80,7 @@ public class SnakeMovement : MonoBehaviour
     public void ResetForTrial(string mode) {
         SetMode(mode);
         if (useRandomTrajectory) { transform.position = GetScreenCenterPosition(); }
+        ResetPath();
     }
 
     public void SetCustomBounds(Vector2 min, Vector2 max) {
@@ -80,6 +88,38 @@ public class SnakeMovement : MonoBehaviour
         customBoundsMin = min;
         customBoundsMax = max;
         transform.position = GetScreenCenterPosition();
+    }
+
+    public Vector3 GetPastPosition(int frameDelay) {
+        if (pastPositionCount == 0) { return transform.position; }
+
+        int delay = Mathf.Clamp(frameDelay, 0, pastPositionCount - 1);
+        int index = pastPositionIndex - 1 - delay;
+        if (index < 0) { index += pastPositions.Length; }
+        return pastPositions[index];
+    }
+
+    void ResetPath() {
+        EnsurePositionBuffer();
+        pastPositionIndex = 0;
+        pastPositionCount = 0;
+        RecordPosition();
+    }
+
+    void RecordPosition() {
+        EnsurePositionBuffer();
+        pastPositions[pastPositionIndex] = transform.position;
+        pastPositionIndex = (pastPositionIndex + 1) % pastPositions.Length;
+        pastPositionCount = Mathf.Min(pastPositionCount + 1, pastPositions.Length);
+    }
+
+    void EnsurePositionBuffer() {
+        int bufferSize = Mathf.Max(1, maxRecordedFrames);
+        if (pastPositions != null && pastPositions.Length == bufferSize) { return; }
+
+        pastPositions = new Vector3[bufferSize];
+        pastPositionIndex = 0;
+        pastPositionCount = 0;
     }
 
     void MoveHeadRandom() {

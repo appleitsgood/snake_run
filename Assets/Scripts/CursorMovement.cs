@@ -13,12 +13,22 @@ public class CursorMovement : MonoBehaviour
     public float tailAlpha = 0.5f;
     public float tailFadeStart = 0.5f;
     public float trailLength = 3.5f;
+    public SnakeMovement snakeToFollow;
+    public bool followSnake;
+    public int followFrameDelay = 60;
+    public float followJitterStrength = 0f;
+    public float followJitterSpeed = 3f;
     public bool useCustomBounds;
     public Vector2 customBoundsMin;
     public Vector2 customBoundsMax;
 
     private Color feedbackColor = Color.green;
     private Vector2 currentInput;
+    private float jitterSeedX;
+
+    void Awake() {
+        ResetJitter();
+    }
 
     void OnValidate() {
         ApplyCursorSettings();
@@ -37,11 +47,23 @@ public class CursorMovement : MonoBehaviour
     }
 
     void Update() {
+        if (followSnake) {
+            currentInput = Vector2.zero;
+            return;
+        }
+
         currentInput = GetArrowInput();
         if (currentInput.sqrMagnitude > 1f) { currentInput.Normalize(); }
     }
 
     void FixedUpdate() {
+        if (followSnake && snakeToFollow != null) {
+            Vector3 basePosition = snakeToFollow.GetPastPosition(followFrameDelay);
+            Vector3 targetPosition = basePosition + GetJitterOffset(basePosition);
+            transform.position = ClampToScreen(targetPosition);
+            return;
+        }
+
         Vector3 nextPosition = transform.position + new Vector3(currentInput.x, currentInput.y, 0f) * speed * Time.fixedDeltaTime;
         transform.position = ClampToScreen(nextPosition);
     }
@@ -65,7 +87,40 @@ public class CursorMovement : MonoBehaviour
 
     public void ResetForTrial() {
         transform.position = GetScreenCenterPosition();
+        currentInput = Vector2.zero;
+        ResetJitter();
         if (trailRenderer != null) { trailRenderer.Clear(); }
+    }
+
+    Vector3 GetJitterOffset(Vector3 basePosition) {
+        if (followJitterStrength <= 0f) { return Vector3.zero; }
+        if (followJitterSpeed <= 0f) { return Vector3.zero; }
+
+        Vector3 direction = GetFollowDirection(basePosition);
+        if (direction.sqrMagnitude < 0.01f) { return Vector3.zero; }
+
+        Vector3 perpendicular = new Vector3(-direction.y, direction.x, 0f);
+        float time = Time.fixedTime * followJitterSpeed;
+        float jitter = Mathf.PerlinNoise(jitterSeedX, time) * 2f - 1f;
+        return perpendicular * jitter * followJitterStrength;
+    }
+
+    Vector3 GetFollowDirection(Vector3 basePosition) {
+        int delay = Mathf.Max(0, followFrameDelay);
+        Vector3 nearPosition = delay > 0
+            ? snakeToFollow.GetPastPosition(delay - 1)
+            : snakeToFollow.GetPastPosition(delay + 1);
+
+        Vector3 direction = delay > 0
+            ? nearPosition - basePosition
+            : basePosition - nearPosition;
+
+        direction.z = 0f;
+        return direction.normalized;
+    }
+
+    void ResetJitter() {
+        jitterSeedX = Random.Range(0f, 100f);
     }
 
     public void SetFeedbackColor(Color color) {

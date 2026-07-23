@@ -30,6 +30,10 @@ public class SnakeRunSettingsData
     public float cursorTailAlpha = 0.1f;
     public float cursorTailFadeStart = 0.5f;
     public float cursorTrailLength = 2f;
+    public bool cursorFollowSnake = false;
+    public int cursorFollowFrameDelay = 60;
+    public float cursorFollowJitterStrength = 0f;
+    public float cursorFollowJitterSpeed = 3f;
 
     const string FileName = "snakerun_settings.json";
 
@@ -60,6 +64,10 @@ public class SnakeRunSettingsData
             settings.cursorTailAlpha = cursorMovement.tailAlpha;
             settings.cursorTailFadeStart = cursorMovement.tailFadeStart;
             settings.cursorTrailLength = cursorMovement.trailLength;
+            settings.cursorFollowSnake = cursorMovement.followSnake;
+            settings.cursorFollowFrameDelay = cursorMovement.followFrameDelay;
+            settings.cursorFollowJitterStrength = cursorMovement.followJitterStrength;
+            settings.cursorFollowJitterSpeed = cursorMovement.followJitterSpeed;
         }
 
         return settings;
@@ -120,6 +128,10 @@ public class SnakeRunSettingsData
             cursorMovement.tailAlpha = cursorTailAlpha;
             cursorMovement.tailFadeStart = cursorTailFadeStart;
             cursorMovement.trailLength = cursorTrailLength;
+            cursorMovement.followSnake = cursorFollowSnake;
+            cursorMovement.followFrameDelay = cursorFollowFrameDelay;
+            cursorMovement.followJitterStrength = cursorFollowJitterStrength;
+            cursorMovement.followJitterSpeed = cursorFollowJitterSpeed;
             cursorMovement.RefreshSettings();
         }
     }
@@ -148,22 +160,28 @@ public class SnakeRunSettingsData
             case "cursorTailAlpha": return FormatFloat(cursorTailAlpha);
             case "cursorTailFadeStart": return FormatFloat(cursorTailFadeStart);
             case "cursorTrailLength": return FormatFloat(cursorTrailLength);
+            case "cursorFollowSnake": return cursorFollowSnake.ToString();
+            case "cursorFollowFrameDelay": return cursorFollowFrameDelay.ToString(CultureInfo.InvariantCulture);
+            case "cursorFollowJitterStrength": return FormatFloat(cursorFollowJitterStrength);
+            case "cursorFollowJitterSpeed": return FormatFloat(cursorFollowJitterSpeed);
             default: return "";
         }
     }
 
     public void SetValue(string key, string value) {
-        if (key == "trialCount") {
+        if (key == "trialCount" || key == "cursorFollowFrameDelay") {
             if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedInt)) {
-                trialCount = parsedInt;
+                if (key == "trialCount") { trialCount = parsedInt; }
+                if (key == "cursorFollowFrameDelay") { cursorFollowFrameDelay = parsedInt; }
             }
             return;
         }
 
-        if (key == "enableCsvLogging" || key == "enableLslMarkers") {
+        if (key == "enableCsvLogging" || key == "enableLslMarkers" || key == "cursorFollowSnake") {
             if (bool.TryParse(value, out bool parsedBool)) {
                 if (key == "enableCsvLogging") { enableCsvLogging = parsedBool; }
                 if (key == "enableLslMarkers") { enableLslMarkers = parsedBool; }
+                if (key == "cursorFollowSnake") { cursorFollowSnake = parsedBool; }
             }
             return;
         }
@@ -190,6 +208,8 @@ public class SnakeRunSettingsData
             case "cursorTailAlpha": cursorTailAlpha = parsedFloat; break;
             case "cursorTailFadeStart": cursorTailFadeStart = parsedFloat; break;
             case "cursorTrailLength": cursorTrailLength = parsedFloat; break;
+            case "cursorFollowJitterStrength": cursorFollowJitterStrength = parsedFloat; break;
+            case "cursorFollowJitterSpeed": cursorFollowJitterSpeed = parsedFloat; break;
         }
     }
 
@@ -213,6 +233,9 @@ public class SnakeRunSettingsData
         cursorTrailWidth = Mathf.Max(0.001f, cursorTrailWidth);
         cursorTailFadeStart = Mathf.Clamp01(cursorTailFadeStart);
         cursorTrailLength = Mathf.Max(0.01f, cursorTrailLength);
+        cursorFollowFrameDelay = Mathf.Max(0, cursorFollowFrameDelay);
+        cursorFollowJitterStrength = Mathf.Max(0f, cursorFollowJitterStrength);
+        cursorFollowJitterSpeed = Mathf.Max(0f, cursorFollowJitterSpeed);
     }
 
     static string FormatFloat(float value) {

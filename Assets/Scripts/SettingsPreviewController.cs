@@ -54,7 +54,13 @@ public class SettingsPreviewController : MonoBehaviour
     public void ShowCursor(SnakeRunSettingsData settings) {
         EnsureCreated();
         ApplySettings(settings);
-        SetPreviewActive(false, true);
+        bool showSnake = settings != null && settings.cursorFollowSnake;
+        SetPreviewActive(showSnake, true);
+
+        if (showSnake && snakePreview != null) {
+            snakePreview.ResetForTrial("random");
+            snakePreview.enabled = true;
+        }
 
         if (cursorPreview != null) {
             cursorPreview.ResetForTrial();
@@ -97,6 +103,7 @@ public class SettingsPreviewController : MonoBehaviour
         ApplyPreviewMaterial(trailRenderer);
         cursorPreview = cursorRoot.AddComponent<CursorMovement>();
         cursorPreview.trailRenderer = trailRenderer;
+        cursorPreview.snakeToFollow = snakePreview;
 
         GameObject head = new GameObject("CursorPreviewHead");
         head.transform.SetParent(cursorRoot.transform);
