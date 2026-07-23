@@ -171,10 +171,15 @@ public class SettingsPanel : MonoBehaviour
                 SetRect(settingInput.input.GetComponent<RectTransform>(), new Vector2(165f, 0f), new Vector2(160f, 42f));
             }
 
+            if (settingInput.toggle != null) {
+                SetRect(settingInput.toggle.GetComponent<RectTransform>(), new Vector2(165f, 0f), new Vector2(42f, 42f));
+            }
+
             Text[] texts = settingInput.GetComponentsInChildren<Text>(true);
             foreach (Text text in texts) {
                 if (text == null) { continue; }
                 if (settingInput.input != null && text.transform.IsChildOf(settingInput.input.transform)) { continue; }
+                if (settingInput.toggle != null && text.transform.IsChildOf(settingInput.toggle.transform)) { continue; }
                 SetRect(text.GetComponent<RectTransform>(), new Vector2(-115f, 0f), new Vector2(290f, 38f));
             }
         }
@@ -211,10 +216,17 @@ public class SettingsPanel : MonoBehaviour
         foreach (SnakeRunSettingInput settingInput in settingInputs) {
             if (settingInput == null) { continue; }
             if (settingInput.input == null) { settingInput.input = settingInput.GetComponentInChildren<InputField>(true); }
-            if (settingInput.input == null) { continue; }
+            if (settingInput.toggle == null) { settingInput.toggle = settingInput.GetComponentInChildren<Toggle>(true); }
 
-            settingInput.input.onValueChanged.RemoveListener(OnInputChanged);
-            settingInput.input.onValueChanged.AddListener(OnInputChanged);
+            if (settingInput.input != null) {
+                settingInput.input.onValueChanged.RemoveListener(OnInputChanged);
+                settingInput.input.onValueChanged.AddListener(OnInputChanged);
+            }
+
+            if (settingInput.toggle != null) {
+                settingInput.toggle.onValueChanged.RemoveListener(OnToggleChanged);
+                settingInput.toggle.onValueChanged.AddListener(OnToggleChanged);
+            }
         }
     }
 
@@ -225,7 +237,7 @@ public class SettingsPanel : MonoBehaviour
         fillingInputs = true;
         foreach (SnakeRunSettingInput settingInput in settingInputs) {
             if (settingInput == null) { continue; }
-            settingInput.SetText(CurrentSettings.GetValue(settingInput.key));
+            settingInput.SetValue(CurrentSettings.GetValue(settingInput.key));
         }
         fillingInputs = false;
     }
@@ -235,7 +247,7 @@ public class SettingsPanel : MonoBehaviour
 
         foreach (SnakeRunSettingInput settingInput in settingInputs) {
             if (settingInput == null) { continue; }
-            CurrentSettings.SetValue(settingInput.key, settingInput.GetText());
+            CurrentSettings.SetValue(settingInput.key, settingInput.GetValue());
         }
 
         CurrentSettings.Sanitize();
@@ -247,6 +259,10 @@ public class SettingsPanel : MonoBehaviour
 
         ReadInputs();
         ApplyPreview();
+    }
+
+    void OnToggleChanged(bool value) {
+        OnInputChanged(value.ToString());
     }
 
     void ApplyPreview() {

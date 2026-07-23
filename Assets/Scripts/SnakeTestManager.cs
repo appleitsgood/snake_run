@@ -17,7 +17,6 @@ public class SnakeTestManager : MonoBehaviour
     public Button fixedButton;
     public Button randomButton;
     public Button settingsButton;
-    public SettingsPanel settingsPanel;
     public string settingsSceneName = "SettingsScene";
     public Text countdownText;
 
@@ -26,6 +25,8 @@ public class SnakeTestManager : MonoBehaviour
     ExitConfirmPopup exitConfirmPopup;
     float timeScaleBeforeExitDialog = 1f;
     bool exitDialogOpen;
+    bool loggedLslMarkersDisabled;
+    bool loggedCsvLoggingDisabled;
 
     void Awake()
     {
@@ -42,18 +43,12 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         if (cursorMovement != null) { cursorMovement.gameObject.SetActive(false); }
-        if (lslMarker == null) { lslMarker = GetComponent<LslMarker>(); }
-        if (lslMarker == null) { Debug.LogWarning("LslMarker is not assigned. LSL markers will not be sent."); }
-        if (csvLogger == null) { csvLogger = GetComponent<CSVLogger>(); }
-        if (csvLogger == null) { Debug.LogWarning("CSVLogger is not assigned. CSV samples will not be written."); }
 
         settings = SnakeRunSettingsData.LoadOrDefault(snakeMovement, cursorMovement);
         settings.ApplyTo(snakeMovement, cursorMovement);
 
-        if (settingsPanel != null) {
-            settingsPanel.Initialize(snakeMovement, cursorMovement);
-            settings = settingsPanel.CurrentSettings;
-        }
+        EnsureOptionalComponents();
+        ApplyOptionalComponentSettings();
 
         modePanel.SetActive(true);
         if (countdownText != null) { countdownText.gameObject.SetActive(false); }
@@ -84,22 +79,16 @@ public class SnakeTestManager : MonoBehaviour
 
         selectedMode = mode;
 
-        if (settingsPanel != null) {
-            settingsPanel.SaveSettings();
-            settings = settingsPanel.CurrentSettings;
-        }
-
+        ApplyOptionalComponentSettings();
         modePanel.SetActive(false);
-        if (csvLogger != null) { csvLogger.CreateLog(runId, snakeMovement, cursorMovement); }
+        if (IsCsvLoggingEnabled()) { csvLogger.CreateLog(runId, snakeMovement, cursorMovement); }
         testRoutine = StartCoroutine(RunTrials());
     }
 
     IEnumerator RunTrials()
     {
-        SnakeRunSettingsData activeSettings = settingsPanel != null && settingsPanel.CurrentSettings != null
-            ? settingsPanel.CurrentSettings
-            : settings != null
-                ? settings
+        SnakeRunSettingsData activeSettings = settings != null
+            ? settings
             : SnakeRunSettingsData.CreateDefault(snakeMovement, cursorMovement);
 
         for (int trialIndex = 0; trialIndex < activeSettings.trialCount; trialIndex++) {
@@ -109,10 +98,10 @@ public class SnakeTestManager : MonoBehaviour
 
             PushTrackingStartMarker();
             StartTrial();
-            if (csvLogger != null) { csvLogger.StartTracking(); }
+            if (IsCsvLoggingEnabled()) { csvLogger.StartTracking(); }
             yield return new WaitForSeconds(activeSettings.trialDuration);
 
-            if (csvLogger != null) { csvLogger.StopTracking(); }
+            if (IsCsvLoggingEnabled()) { csvLogger.StopTracking(); }
             PushTrackingEndMarker();
             HideTrialObjects();
             PushTrialEndMarker();
@@ -120,7 +109,7 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         testRoutine = null;
-        if (csvLogger != null) { csvLogger.SaveLog(); }
+        if (IsCsvLoggingEnabled()) { csvLogger.SaveLog(); }
         modePanel.SetActive(true);
     }
 
@@ -165,23 +154,62 @@ public class SnakeTestManager : MonoBehaviour
     }
 
     void PushTrialStartMarker() {
+        if (!AreLslMarkersEnabled()) { return; }
         if (lslMarker == null) { return; }
         lslMarker.PushTrialStart();
     }
 
     void PushTrialEndMarker() {
+        if (!AreLslMarkersEnabled()) { return; }
         if (lslMarker == null) { return; }
         lslMarker.PushTrialEnd();
     }
 
     void PushTrackingStartMarker() {
+        if (!AreLslMarkersEnabled()) { return; }
         if (lslMarker == null) { return; }
         lslMarker.PushTrackingStart();
     }
 
     void PushTrackingEndMarker() {
+        if (!AreLslMarkersEnabled()) { return; }
         if (lslMarker == null) { return; }
         lslMarker.PushTrackingEnd();
+    }
+
+    void EnsureOptionalComponents() {
+        if (lslMarker == null) { lslMarker = GetComponent<LslMarker>(); }
+        if (lslMarker == null) { lslMarker = gameObject.AddComponent<LslMarker>(); }
+
+        if (csvLogger == null) { csvLogger = GetComponent<CSVLogger>(); }
+        if (csvLogger == null) { csvLogger = gameObject.AddComponent<CSVLogger>(); }
+    }
+
+    void ApplyOptionalComponentSettings() {
+        if (settings == null) { return; }
+
+        if (lslMarker != null) { lslMarker.enabled = settings.enableLslMarkers; }
+        if (csvLogger != null) { csvLogger.enabled = settings.enableCsvLogging; }
+
+        if (settings.enableLslMarkers) { loggedLslMarkersDisabled = false; }
+        else if (!loggedLslMarkersDisabled) {
+            Debug.Log("LSL markers are disabled by settings.");
+            loggedLslMarkersDisabled = true;
+        }
+
+        if (settings.enableCsvLogging) { loggedCsvLoggingDisabled = false; }
+        else if (!loggedCsvLoggingDisabled) {
+            Debug.Log("CSV logging is disabled by settings.");
+            loggedCsvLoggingDisabled = true;
+        }
+    }
+
+    bool AreLslMarkersEnabled() {
+        return settings != null && settings.enableLslMarkers && lslMarker != null;
+    }
+
+    bool IsCsvLoggingEnabled() {
+        return settings != null && settings.enableCsvLogging && csvLogger != null;
     }
 
     bool WasEscapePressed() {
@@ -228,7 +256,7 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         selectedMode = "";
-        if (csvLogger != null) { csvLogger.SaveLog(); }
+        if (IsCsvLoggingEnabled()) { csvLogger.SaveLog(); }
         HideTrialObjects();
         if (countdownText != null) { countdownText.gameObject.SetActive(false); }
         if (modePanel != null) { modePanel.SetActive(true); }

@@ -10,6 +10,8 @@ public class SnakeRunSettingsData
     public float trialDuration = 10f;
     public float breakDuration = 4f;
     public float countdownDuration = 3f;
+    public bool enableCsvLogging = true;
+    public bool enableLslMarkers = true;
 
     public float snakeSpeed = 2f;
     public float snakeTurnSpeed = 2f;
@@ -128,6 +130,8 @@ public class SnakeRunSettingsData
             case "trialDuration": return FormatFloat(trialDuration);
             case "breakDuration": return FormatFloat(breakDuration);
             case "countdownDuration": return FormatFloat(countdownDuration);
+            case "enableCsvLogging": return enableCsvLogging.ToString();
+            case "enableLslMarkers": return enableLslMarkers.ToString();
             case "snakeSpeed": return FormatFloat(snakeSpeed);
             case "snakeTurnSpeed": return FormatFloat(snakeTurnSpeed);
             case "snakeRandomTurnStrength": return FormatFloat(snakeRandomTurnStrength);
@@ -152,6 +156,14 @@ public class SnakeRunSettingsData
         if (key == "trialCount") {
             if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedInt)) {
                 trialCount = parsedInt;
+            }
+            return;
+        }
+
+        if (key == "enableCsvLogging" || key == "enableLslMarkers") {
+            if (bool.TryParse(value, out bool parsedBool)) {
+                if (key == "enableCsvLogging") { enableCsvLogging = parsedBool; }
+                if (key == "enableLslMarkers") { enableLslMarkers = parsedBool; }
             }
             return;
         }
