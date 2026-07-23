@@ -24,8 +24,6 @@ public class SnakeMovement : MonoBehaviour
     private float noiseSeedY;
     private float fixedAngle;
     private Vector3 fixedCenter;
-    private float positionLogTimer;
-    private const float PositionLogInterval = 1f;
 
     void Awake() {
         ResetRandomDirection();
@@ -51,10 +49,9 @@ public class SnakeMovement : MonoBehaviour
         if (trailRenderer != null) { trailRenderer.emitting = false; }
     }
 
-    void Update() {
+    void FixedUpdate() {
         if (useRandomTrajectory) { MoveHeadRandom(); }
         if (useFixedTrajectory) { MoveHeadFixed(); }
-        LogPosition();
     }
 
     public void SetMode(string mode) {
@@ -105,14 +102,14 @@ public class SnakeMovement : MonoBehaviour
         if (desiredDirection.sqrMagnitude < 0.01f) { desiredDirection = direction; }
         desiredDirection.Normalize();
 
-        direction = Vector2.Lerp(direction, desiredDirection, turnSpeed * Time.deltaTime);
+        direction = Vector2.Lerp(direction, desiredDirection, turnSpeed * Time.fixedDeltaTime);
         direction.Normalize();
 
-        Vector3 nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.deltaTime;
+        Vector3 nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.fixedDeltaTime;
         if (!IsInsideScreen(nextPosition)) {
-            direction = Vector2.Lerp(direction, GetScreenCenterDirection(), edgeAvoidStrength * Time.deltaTime);
+            direction = Vector2.Lerp(direction, GetScreenCenterDirection(), edgeAvoidStrength * Time.fixedDeltaTime);
             direction.Normalize();
-            nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.deltaTime;
+            nextPosition = transform.position + new Vector3(direction.x, direction.y, 0f) * speed * Time.fixedDeltaTime;
         }
 
         transform.position = ClampToScreen(nextPosition);
@@ -121,12 +118,12 @@ public class SnakeMovement : MonoBehaviour
     void MoveHeadFixed() {
         fixedCenter = GetScreenCenterPosition();
         float radius = GetFixedCircleRadius();
-        fixedAngle += speed / radius * Time.deltaTime;
+        fixedAngle += speed / radius * Time.fixedDeltaTime;
         transform.position = fixedCenter + new Vector3(Mathf.Cos(fixedAngle), Mathf.Sin(fixedAngle), 0f) * radius;
     }
 
     Vector2 GetSmoothRandomDirection() {
-        float t = Time.time * 0.5f;
+        float t = Time.fixedTime * 0.5f;
         float x = Mathf.PerlinNoise(noiseSeedX, t) * 2f - 1f;
         float y = Mathf.PerlinNoise(noiseSeedY, t) * 2f - 1f;
         Vector2 noiseDirection = new Vector2(x, y);
@@ -231,16 +228,6 @@ public class SnakeMovement : MonoBehaviour
         position.y = Mathf.Clamp(position.y, min.y + randomEdgePadding, max.y - randomEdgePadding);
         position.z = 0f;
         return position;
-    }
-
-    void LogPosition() {
-        if (!useRandomTrajectory && !useFixedTrajectory) { return; }
-
-        positionLogTimer -= Time.deltaTime;
-        if (positionLogTimer > 0f) { return; }
-
-        Debug.Log($"x: {transform.position.x:F3}, y: {transform.position.y:F3}");
-        positionLogTimer = PositionLogInterval;
     }
 
     void ApplyTrailSettings() {

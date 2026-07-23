@@ -11,6 +11,7 @@ public class SnakeTestManager : MonoBehaviour
     public string selectedMode;
     public string runId = "sub01";
     public LslMarker lslMarker;
+    public CSVLogger csvLogger;
 
     public GameObject modePanel;
     public Button fixedButton;
@@ -43,6 +44,8 @@ public class SnakeTestManager : MonoBehaviour
         if (cursorMovement != null) { cursorMovement.gameObject.SetActive(false); }
         if (lslMarker == null) { lslMarker = GetComponent<LslMarker>(); }
         if (lslMarker == null) { Debug.LogWarning("LslMarker is not assigned. LSL markers will not be sent."); }
+        if (csvLogger == null) { csvLogger = GetComponent<CSVLogger>(); }
+        if (csvLogger == null) { Debug.LogWarning("CSVLogger is not assigned. CSV samples will not be written."); }
 
         settings = SnakeRunSettingsData.LoadOrDefault(snakeMovement, cursorMovement);
         settings.ApplyTo(snakeMovement, cursorMovement);
@@ -87,6 +90,7 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         modePanel.SetActive(false);
+        if (csvLogger != null) { csvLogger.CreateLog(runId, snakeMovement, cursorMovement); }
         testRoutine = StartCoroutine(RunTests());
     }
 
@@ -105,8 +109,10 @@ public class SnakeTestManager : MonoBehaviour
 
             PushTrackingStartMarker();
             StartRun();
+            if (csvLogger != null) { csvLogger.StartTracking(); }
             yield return new WaitForSeconds(activeSettings.runDuration);
 
+            if (csvLogger != null) { csvLogger.StopTracking(); }
             PushTrackingEndMarker();
             HideRunObjects();
             PushTrialEndMarker();
@@ -114,6 +120,7 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         testRoutine = null;
+        if (csvLogger != null) { csvLogger.SaveLog(); }
         modePanel.SetActive(true);
     }
 
@@ -221,6 +228,7 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         selectedMode = "";
+        if (csvLogger != null) { csvLogger.SaveLog(); }
         HideRunObjects();
         if (countdownText != null) { countdownText.gameObject.SetActive(false); }
         if (modePanel != null) { modePanel.SetActive(true); }

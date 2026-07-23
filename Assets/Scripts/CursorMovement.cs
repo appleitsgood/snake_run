@@ -18,6 +18,7 @@ public class CursorMovement : MonoBehaviour
     public Vector2 customBoundsMax;
 
     private Color feedbackColor = Color.green;
+    private Vector2 currentInput;
 
     void OnValidate() {
         ApplyCursorSettings();
@@ -36,10 +37,12 @@ public class CursorMovement : MonoBehaviour
     }
 
     void Update() {
-        Vector2 input = GetArrowInput();
-        if (input.sqrMagnitude > 1f) { input.Normalize(); }
+        currentInput = GetArrowInput();
+        if (currentInput.sqrMagnitude > 1f) { currentInput.Normalize(); }
+    }
 
-        Vector3 nextPosition = transform.position + new Vector3(input.x, input.y, 0f) * speed * Time.deltaTime;
+    void FixedUpdate() {
+        Vector3 nextPosition = transform.position + new Vector3(currentInput.x, currentInput.y, 0f) * speed * Time.fixedDeltaTime;
         transform.position = ClampToScreen(nextPosition);
     }
 
