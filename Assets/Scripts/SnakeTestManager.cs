@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -19,6 +20,9 @@ public class SnakeTestManager : MonoBehaviour
 
     Coroutine testRoutine;
     SnakeRunSettingsData settings;
+    ExitConfirmPopup exitConfirmPopup;
+    float timeScaleBeforeExitDialog = 1f;
+    bool exitDialogOpen;
 
     void Awake()
     {
@@ -49,6 +53,18 @@ public class SnakeTestManager : MonoBehaviour
         fixedButton.onClick.AddListener(() => StartTest("fixed"));
         randomButton.onClick.AddListener(() => StartTest("random"));
         if (settingsButton != null) { settingsButton.onClick.AddListener(OpenSettings); }
+    }
+
+    void Update() {
+        if (testRoutine == null) { return; }
+        if (exitDialogOpen) { return; }
+        if (!WasEscapePressed()) { return; }
+
+        ShowExitConfirmPopup();
+    }
+
+    void OnDisable() {
+        HideExitConfirmPopup(true);
     }
 
     void OpenSettings() {
@@ -131,5 +147,54 @@ public class SnakeTestManager : MonoBehaviour
             cursorMovement.enabled = false;
             cursorMovement.gameObject.SetActive(false);
         }
+    }
+
+    bool WasEscapePressed() {
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+    }
+
+    void ShowExitConfirmPopup() {
+        exitConfirmPopup = ExitConfirmPopup.Show(ConfirmExitExperiment, CancelExitExperiment);
+
+        timeScaleBeforeExitDialog = Time.timeScale;
+        Time.timeScale = 0f;
+        exitDialogOpen = true;
+    }
+
+    void CancelExitExperiment() {
+        HideExitConfirmPopup(true);
+    }
+
+    void ConfirmExitExperiment() {
+        HideExitConfirmPopup(true);
+        EndCurrentExperiment();
+    }
+
+    void HideExitConfirmPopup(bool restoreTimeScale) {
+        if (exitConfirmPopup != null) {
+            Destroy(exitConfirmPopup.gameObject);
+            exitConfirmPopup = null;
+        }
+
+        if (restoreTimeScale) { RestoreTimeScale(); }
+        exitDialogOpen = false;
+    }
+
+    void RestoreTimeScale() {
+        if (!exitDialogOpen) { return; }
+        Time.timeScale = timeScaleBeforeExitDialog;
+    }
+
+    public void EndCurrentExperiment() {
+        if (testRoutine != null) {
+            StopCoroutine(testRoutine);
+            testRoutine = null;
+        }
+
+        selectedMode = "";
+        HideRunObjects();
+        if (countdownText != null) { countdownText.gameObject.SetActive(false); }
+        if (modePanel != null) { modePanel.SetActive(true); }
     }
 }
