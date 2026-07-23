@@ -47,8 +47,8 @@ public class SnakeTestManager : MonoBehaviour
         settings = SnakeRunSettingsData.LoadOrDefault(snakeMovement, cursorMovement);
         settings.ApplyTo(snakeMovement, cursorMovement);
 
-        EnsureOptionalComponents();
-        ApplyOptionalComponentSettings();
+        SetupLoggers();
+        ApplyLogSettings();
 
         modePanel.SetActive(true);
         if (countdownText != null) { countdownText.gameObject.SetActive(false); }
@@ -79,7 +79,6 @@ public class SnakeTestManager : MonoBehaviour
 
         selectedMode = mode;
 
-        ApplyOptionalComponentSettings();
         modePanel.SetActive(false);
         if (IsCsvLoggingEnabled()) { csvLogger.CreateLog(runId, snakeMovement, cursorMovement); }
         testRoutine = StartCoroutine(RunTrials());
@@ -177,7 +176,7 @@ public class SnakeTestManager : MonoBehaviour
         lslMarker.PushTrackingEnd();
     }
 
-    void EnsureOptionalComponents() {
+    void SetupLoggers() {
         if (lslMarker == null) { lslMarker = GetComponent<LslMarker>(); }
         if (lslMarker == null) { lslMarker = gameObject.AddComponent<LslMarker>(); }
 
@@ -185,7 +184,7 @@ public class SnakeTestManager : MonoBehaviour
         if (csvLogger == null) { csvLogger = gameObject.AddComponent<CSVLogger>(); }
     }
 
-    void ApplyOptionalComponentSettings() {
+    void ApplyLogSettings() {
         if (settings == null) { return; }
 
         if (lslMarker != null) { lslMarker.enabled = settings.enableLslMarkers; }

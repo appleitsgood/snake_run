@@ -993,7 +993,6 @@ MonoBehaviour:
   fixedButton: {fileID: 2026070834}
   randomButton: {fileID: 2026070854}
   settingsButton: {fileID: 2026070904}
-  settingsPanel: {fileID: 0}
   settingsSceneName: SettingsScene
   countdownText: {fileID: 2026070873}
 --- !u!1 &2026070810

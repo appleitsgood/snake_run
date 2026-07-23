@@ -14,10 +14,6 @@ public class CSVLogger : MonoBehaviour
     string runId = "sub01";
     bool isTracking;
 
-    public bool IsLogOpen {
-        get { return writer != null; }
-    }
-
     public void CreateLog(string runId, SnakeMovement snakeMovement, CursorMovement cursorMovement) {
         SaveLog();
 

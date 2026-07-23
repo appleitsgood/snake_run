@@ -10,12 +10,10 @@ public class SettingsPanel : MonoBehaviour
     public GameObject cursorContent;
     public GameObject controlsRoot;
 
-    public Button openButton;
     public Button generalTabButton;
     public Button snakeTabButton;
     public Button cursorTabButton;
     public Button saveButton;
-    public Button closeButton;
     public Button resetDefaultsButton;
     public Button backButton;
     public Button hidePanelButton;
@@ -24,7 +22,6 @@ public class SettingsPanel : MonoBehaviour
     public string backSceneName = "TestScene";
     public bool initializeOnAwake;
     public bool showOnAwake;
-    public bool hideAfterSave = true;
     public Color selectedTabColor = new Color(0.12f, 0.35f, 0.58f, 1f);
     public Color normalTabColor = new Color(0.12f, 0.16f, 0.2f, 1f);
 
@@ -43,12 +40,10 @@ public class SettingsPanel : MonoBehaviour
         panelRect = panel != null ? panel.GetComponent<RectTransform>() : null;
         panelImage = panel != null ? panel.GetComponent<Image>() : null;
         CacheInputs();
-        RegisterButton(openButton, Show);
         RegisterButton(generalTabButton, () => ShowTab(generalContent));
         RegisterButton(snakeTabButton, () => ShowTab(snakeContent));
         RegisterButton(cursorTabButton, () => ShowTab(cursorContent));
-        RegisterButton(saveButton, SaveAndHide);
-        RegisterButton(closeButton, Hide);
+        RegisterButton(saveButton, SaveSettings);
         RegisterButton(resetDefaultsButton, ResetDefaults);
         RegisterButton(backButton, Back);
         RegisterButton(hidePanelButton, HideControls);
@@ -93,11 +88,6 @@ public class SettingsPanel : MonoBehaviour
         FillInputs();
     }
 
-    void SaveAndHide() {
-        SaveSettings();
-        if (hideAfterSave) { Hide(); }
-    }
-
     void Back() {
         SceneManager.LoadScene(backSceneName);
     }
@@ -106,7 +96,6 @@ public class SettingsPanel : MonoBehaviour
         CurrentSettings = Clone(defaultSettings);
         CurrentSettings.ApplyTo(snakeMovement, cursorMovement);
         ApplyPreview();
-        CurrentSettings.Save();
         FillInputs();
     }
 

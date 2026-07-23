@@ -9816,12 +9816,10 @@ MonoBehaviour:
   snakeContent: {fileID: 302020000}
   cursorContent: {fileID: 302030000}
   controlsRoot: {fileID: 302000000}
-  openButton: {fileID: 0}
   generalTabButton: {fileID: 302001004}
   snakeTabButton: {fileID: 302001104}
   cursorTabButton: {fileID: 302001204}
   saveButton: {fileID: 302001404}
-  closeButton: {fileID: 0}
   resetDefaultsButton: {fileID: 302001304}
   backButton: {fileID: 302001504}
   hidePanelButton: {fileID: 305001004}
@@ -9830,7 +9828,6 @@ MonoBehaviour:
   backSceneName: TestScene
   initializeOnAwake: 1
   showOnAwake: 1
-  hideAfterSave: 0
   selectedTabColor: {r: 0.12, g: 0.35, b: 0.58, a: 1}
   normalTabColor: {r: 0.12, g: 0.16, b: 0.2, a: 1}
 --- !u!114 &303000003

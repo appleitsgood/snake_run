@@ -88,10 +88,6 @@ public class CursorMovement : MonoBehaviour
         transform.position = GetScreenCenterPosition();
     }
 
-    public void ClearCustomBounds() {
-        useCustomBounds = false;
-    }
-
     Vector3 ClampToScreen(Vector3 position) {
         if (useCustomBounds) {
             position.x = Mathf.Clamp(position.x, customBoundsMin.x + screenPadding, customBoundsMax.x - screenPadding);

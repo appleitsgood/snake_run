@@ -20,10 +20,6 @@ public class LslMarker : MonoBehaviour
     bool lastConsumerState;
     bool hasLoggedConsumerState;
 
-    public bool IsReady {
-        get { return outlet != null; }
-    }
-
     public bool HasConsumer {
         get { return outlet != null && outlet.have_consumers(); }
     }

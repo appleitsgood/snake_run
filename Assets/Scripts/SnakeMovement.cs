@@ -66,10 +66,6 @@ public class SnakeMovement : MonoBehaviour
         }
     }
 
-    public void SetRandomMode(bool enabled) {
-        SetMode(enabled ? "random" : "fixed");
-    }
-
     public void RefreshSettings() {
         ApplyTrailSettings();
     }
@@ -84,10 +80,6 @@ public class SnakeMovement : MonoBehaviour
         customBoundsMin = min;
         customBoundsMax = max;
         transform.position = GetScreenCenterPosition();
-    }
-
-    public void ClearCustomBounds() {
-        useCustomBounds = false;
     }
 
     void MoveHeadRandom() {
