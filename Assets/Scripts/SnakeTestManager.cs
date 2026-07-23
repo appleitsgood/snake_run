@@ -9,6 +9,8 @@ public class SnakeTestManager : MonoBehaviour
     public SnakeMovement snakeMovement;
     public CursorMovement cursorMovement;
     public string selectedMode;
+    public string runId = "sub01";
+    public LslMarker lslMarker;
 
     public GameObject modePanel;
     public Button fixedButton;
@@ -39,6 +41,8 @@ public class SnakeTestManager : MonoBehaviour
         }
 
         if (cursorMovement != null) { cursorMovement.gameObject.SetActive(false); }
+        if (lslMarker == null) { lslMarker = GetComponent<LslMarker>(); }
+        if (lslMarker == null) { Debug.LogWarning("LslMarker is not assigned. LSL markers will not be sent."); }
 
         settings = SnakeRunSettingsData.LoadOrDefault(snakeMovement, cursorMovement);
         settings.ApplyTo(snakeMovement, cursorMovement);
@@ -95,13 +99,17 @@ public class SnakeTestManager : MonoBehaviour
             : SnakeRunSettingsData.CreateDefault(snakeMovement, cursorMovement);
 
         for (int runIndex = 0; runIndex < activeSettings.runCount; runIndex++) {
+            PushTrialStartMarker();
             ShowCountdownCursor(activeSettings.countdownDuration);
             yield return new WaitForSeconds(activeSettings.countdownDuration);
 
+            PushTrackingStartMarker();
             StartRun();
             yield return new WaitForSeconds(activeSettings.runDuration);
 
+            PushTrackingEndMarker();
             HideRunObjects();
+            PushTrialEndMarker();
             if (runIndex < activeSettings.runCount - 1) { yield return new WaitForSeconds(activeSettings.breakDuration); }
         }
 
@@ -147,6 +155,26 @@ public class SnakeTestManager : MonoBehaviour
             cursorMovement.enabled = false;
             cursorMovement.gameObject.SetActive(false);
         }
+    }
+
+    void PushTrialStartMarker() {
+        if (lslMarker == null) { return; }
+        lslMarker.PushTrialStart();
+    }
+
+    void PushTrialEndMarker() {
+        if (lslMarker == null) { return; }
+        lslMarker.PushTrialEnd();
+    }
+
+    void PushTrackingStartMarker() {
+        if (lslMarker == null) { return; }
+        lslMarker.PushTrackingStart();
+    }
+
+    void PushTrackingEndMarker() {
+        if (lslMarker == null) { return; }
+        lslMarker.PushTrackingEnd();
     }
 
     bool WasEscapePressed() {
